@@ -1,15 +1,6 @@
-# localGPT
+# NithyanandaGPT
 
-This project was inspired by the original [privateGPT](https://github.com/imartinez/privateGPT). Most of the description here is inspired by the original privateGPT.
-
-For detailed overview of the project, Watch these videos
-- [Detailed code-walkthrough](https://youtu.be/MlyoObdIHyo).
-- [Llama-2 with LocalGPT](https://youtu.be/lbFmceo4D5E)
-- [Adding Chat History](https://youtu.be/d7otIM_MCZs)
-
-In this model, I have replaced the GPT4ALL model with Vicuna-7B model and we are using the InstructorEmbeddings instead of LlamaEmbeddings as used in the original privateGPT. Both Embeddings as well as LLM will run on GPU instead of CPU. It also has CPU support if you do not have a GPU (see below for instruction).
-
-Ask questions to your documents without an internet connection, using the power of LLMs. 100% private, no data leaves your execution environment at any point. You can ingest documents and ask questions without an internet connection!
+This project was inspired by the original [LocalGPT](https://github.com/PromtEngineer/localGPT). Most of the description here is inspired by the original LocalGPT.
 
 Built with [LangChain](https://github.com/hwchase17/langchain) and [Vicuna-7B](https://huggingface.co/TheBloke/vicuna-7B-1.1-HF) (+ alot more!) and [InstructorEmbeddings](https://instructor-embedding.github.io/)
 
