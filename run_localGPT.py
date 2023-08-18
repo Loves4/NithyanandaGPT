@@ -48,8 +48,9 @@ def load_model(device_type, model_id, model_basename=None):
     if model_basename is not None:
         if ".ggml" in model_basename:
             logging.info("Using Llamacpp for GGML quantized models")
-            model_path = hf_hub_download(repo_id=model_id, filename=model_basename)
-            max_ctx_size = 2048
+            # model_path = hf_hub_download(repo_id=model_id, filename=model_basename)
+            model_path = "/home/psp/models/llama-2-7b-chat.ggmlv3.q4_0.bin"
+            max_ctx_size = 4096
             kwargs = {
                 "model_path": model_path,
                 "n_ctx": max_ctx_size,
@@ -116,8 +117,8 @@ def load_model(device_type, model_id, model_basename=None):
         "text-generation",
         model=model,
         tokenizer=tokenizer,
-        max_length=2048,
-        temperature=0,
+        max_length=4096,
+        temperature=0.2,
         top_p=0.95,
         repetition_penalty=1.15,
         generation_config=generation_config,

@@ -6,8 +6,11 @@ import subprocess
 import torch
 from auto_gptq import AutoGPTQForCausalLM
 from flask import Flask, jsonify, request
+from flask_cors import CORS  # Import the CORS module
 from langchain.chains import RetrievalQA
 from langchain.embeddings import HuggingFaceInstructEmbeddings
+from langchain.memory import ConversationBufferMemory
+from langchain.prompts import PromptTemplate
 
 # from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.llms import HuggingFacePipeline
@@ -36,24 +39,24 @@ EMBEDDINGS = HuggingFaceInstructEmbeddings(model_name=EMBEDDING_MODEL_NAME, mode
 
 # uncomment the following line if you used HuggingFaceEmbeddings in the ingest.py
 # EMBEDDINGS = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
-if os.path.exists(PERSIST_DIRECTORY):
-    try:
-        shutil.rmtree(PERSIST_DIRECTORY)
-    except OSError as e:
-        print(f"Error: {e.filename} - {e.strerror}.")
-else:
-    print("The directory does not exist")
+# if os.path.exists(PERSIST_DIRECTORY):
+#     try:
+#         shutil.rmtree(PERSIST_DIRECTORY)
+#     except OSError as e:
+#         print(f"Error: {e.filename} - {e.strerror}.")
+# else:
+#     print("The directory does not exist")
 
-run_langest_commands = ["python", "ingest.py"]
-if DEVICE_TYPE == "cpu":
-    run_langest_commands.append("--device_type")
-    run_langest_commands.append(DEVICE_TYPE)
+# run_langest_commands = ["python", "ingest.py"]
+# if DEVICE_TYPE == "cpu":
+#     run_langest_commands.append("--device_type")
+#     run_langest_commands.append(DEVICE_TYPE)
 
-result = subprocess.run(run_langest_commands, capture_output=True)
-if result.returncode != 0:
-    raise FileNotFoundError(
-        "No files were found inside SOURCE_DOCUMENTS, please put a starter file inside before starting the API!"
-    )
+# result = subprocess.run(run_langest_commands, capture_output=True)
+# if result.returncode != 0:
+#     raise FileNotFoundError(
+#         "No files were found inside SOURCE_DOCUMENTS, please put a starter file inside before starting the API!"
+#     )
 
 # load the vectorstore
 DB = Chroma(
@@ -63,7 +66,6 @@ DB = Chroma(
 )
 
 RETRIEVER = DB.as_retriever()
-
 LLM = load_model(device_type=DEVICE_TYPE, model_id=MODEL_ID, model_basename=MODEL_BASENAME)
 
 QA = RetrievalQA.from_chain_type(
@@ -71,18 +73,18 @@ QA = RetrievalQA.from_chain_type(
 )
 
 app = Flask(__name__)
+CORS(app)
 
+# @app.route("/api/delete_source", methods=["GET"])
+# def delete_source_route():
+#     folder_name = "SOURCE_DOCUMENTS"
 
-@app.route("/api/delete_source", methods=["GET"])
-def delete_source_route():
-    folder_name = "SOURCE_DOCUMENTS"
+    # if os.path.exists(folder_name):
+    #     shutil.rmtree(folder_name)
 
-    if os.path.exists(folder_name):
-        shutil.rmtree(folder_name)
+    # os.makedirs(folder_name)
 
-    os.makedirs(folder_name)
-
-    return jsonify({"message": f"Folder '{folder_name}' successfully deleted and recreated."})
+    # return jsonify({"message": f"Folder '{folder_name}' successfully deleted and recreated."})
 
 
 @app.route("/api/save_document", methods=["GET", "POST"])
@@ -132,8 +134,24 @@ def run_ingest_route():
         )
         RETRIEVER = DB.as_retriever()
 
+        template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,\
+        just say that you don't know, don't try to make up an answer.
+
+        {context}
+
+        {history}
+        Question: {question}
+        Helpful Answer:"""
+
+        prompt = PromptTemplate(input_variables=["history", "context", "question"], template=template)
+        memory = ConversationBufferMemory(input_key="question", memory_key="history")
+
         QA = RetrievalQA.from_chain_type(
-            llm=LLM, chain_type="stuff", retriever=RETRIEVER, return_source_documents=SHOW_SOURCES
+            llm=LLM,
+            chain_type="stuff",
+            retriever=RETRIEVER,
+            return_source_documents=SHOW_SOURCES,
+            chain_type_kwargs={"prompt": prompt, "memory": memory},
         )
         return "Script executed successfully: {}".format(result.stdout.decode("utf-8")), 200
     except Exception as e:
