@@ -44,6 +44,7 @@ EMBEDDING_MODEL_NAME = "hkunlp/instructor-large"
 # Select the Model ID and model_basename
 # load the LLM for generating Natural Language responses
 
+#Comment the MODEL_PATH if you want to download the model from Huggingface 
 MODEL_PATH = "/home/psp/models/llama-2-7b-chat.ggmlv3.q4_0.bin"
 MODEL_ID = "TheBloke/Llama-2-7B-Chat-GGML"
 MODEL_BASENAME = "llama-2-7b-chat.ggmlv3.q4_0.bin"

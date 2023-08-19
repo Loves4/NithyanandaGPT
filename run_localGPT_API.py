@@ -39,6 +39,8 @@ EMBEDDINGS = HuggingFaceInstructEmbeddings(model_name=EMBEDDING_MODEL_NAME, mode
 
 # uncomment the following line if you used HuggingFaceEmbeddings in the ingest.py
 # EMBEDDINGS = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
+
+#Uncomment the following if you want to create new DB everytime you run the API
 # if os.path.exists(PERSIST_DIRECTORY):
 #     try:
 #         shutil.rmtree(PERSIST_DIRECTORY)
@@ -134,6 +136,7 @@ def run_ingest_route():
         )
         RETRIEVER = DB.as_retriever()
 
+        #Prompt Template
         template = """Use the following pieces of context to answer the question at the end. If you don't know the answer,\
         just say that you don't know, don't try to make up an answer.
 
