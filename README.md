@@ -41,10 +41,6 @@ Build as `docker build . -t localgpt`, requires BuildKit.
 Docker BuildKit does not support GPU during *docker build* time right now, only during *docker run*.
 Run as `docker run -it --mount src="$HOME/.cache",target=/root/.cache,type=bind --gpus=all localgpt`.
 
-## Test dataset
-
-This repo uses a [Constitution of USA ](https://constitutioncenter.org/media/files/constitution.pdf) as an example.
-
 ## Instructions for ingesting your own dataset
 
 Put any and all of your .txt, .pdf, or .csv files into the SOURCE_DOCUMENTS directory
