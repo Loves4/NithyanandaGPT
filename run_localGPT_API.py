@@ -4,26 +4,16 @@ import shutil
 import subprocess
 
 import torch
-from auto_gptq import AutoGPTQForCausalLM
 from flask import Flask, jsonify, request
-from flask_cors import CORS  # Import the CORS module
 from langchain.chains import RetrievalQA
 from langchain.embeddings import HuggingFaceInstructEmbeddings
 
 # from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.llms import HuggingFacePipeline
 from run_localGPT import load_model
+from prompt_template_utils import get_prompt_template
 
 # from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.vectorstores import Chroma
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    GenerationConfig,
-    LlamaForCausalLM,
-    LlamaTokenizer,
-    pipeline,
-)
 from werkzeug.utils import secure_filename
 
 from constants import CHROMA_SETTINGS, EMBEDDING_MODEL_NAME, PERSIST_DIRECTORY, MODEL_ID, MODEL_BASENAME
@@ -66,13 +56,20 @@ DB = Chroma(
 RETRIEVER = DB.as_retriever()
 
 LLM = load_model(device_type=DEVICE_TYPE, model_id=MODEL_ID, model_basename=MODEL_BASENAME)
+prompt, memory = get_prompt_template(promptTemplate_type="llama", history=False)
 
 QA = RetrievalQA.from_chain_type(
-    llm=LLM, chain_type="stuff", retriever=RETRIEVER, return_source_documents=SHOW_SOURCES
+    llm=LLM,
+    chain_type="stuff",
+    retriever=RETRIEVER,
+    return_source_documents=SHOW_SOURCES,
+    chain_type_kwargs={
+        "prompt": prompt,
+    },
 )
 
 app = Flask(__name__)
-CORS(app)
+
 
 @app.route("/api/delete_source", methods=["GET"])
 def delete_source_route():
@@ -103,42 +100,49 @@ def save_document_route():
         return "File saved successfully", 200
 
 
-@app.route("/api/run_ingest", methods=["GET"])
-def run_ingest_route():
-    global DB
-    global RETRIEVER
-    global QA
-    try:
-        if os.path.exists(PERSIST_DIRECTORY):
-            try:
-                shutil.rmtree(PERSIST_DIRECTORY)
-            except OSError as e:
-                print(f"Error: {e.filename} - {e.strerror}.")
-        else:
-            print("The directory does not exist")
+# @app.route("/api/run_ingest", methods=["GET"])
+# def run_ingest_route():
+#     global DB
+#     global RETRIEVER
+#     global QA
+#     try:
+#         if os.path.exists(PERSIST_DIRECTORY):
+#             try:
+#                 shutil.rmtree(PERSIST_DIRECTORY)
+#             except OSError as e:
+#                 print(f"Error: {e.filename} - {e.strerror}.")
+#         else:
+#             print("The directory does not exist")
 
-        run_langest_commands = ["python", "ingest.py"]
-        if DEVICE_TYPE == "cpu":
-            run_langest_commands.append("--device_type")
-            run_langest_commands.append(DEVICE_TYPE)
-            
-        result = subprocess.run(run_langest_commands, capture_output=True)
-        if result.returncode != 0:
-            return "Script execution failed: {}".format(result.stderr.decode("utf-8")), 500
-        # load the vectorstore
-        DB = Chroma(
-            persist_directory=PERSIST_DIRECTORY,
-            embedding_function=EMBEDDINGS,
-            client_settings=CHROMA_SETTINGS,
-        )
-        RETRIEVER = DB.as_retriever()
+#         run_langest_commands = ["python", "ingest.py"]
+#         if DEVICE_TYPE == "cpu":
+#             run_langest_commands.append("--device_type")
+#             run_langest_commands.append(DEVICE_TYPE)
 
-        QA = RetrievalQA.from_chain_type(
-            llm=LLM, chain_type="stuff", retriever=RETRIEVER, return_source_documents=SHOW_SOURCES
-        )
-        return "Script executed successfully: {}".format(result.stdout.decode("utf-8")), 200
-    except Exception as e:
-        return f"Error occurred: {str(e)}", 500
+#         result = subprocess.run(run_langest_commands, capture_output=True)
+#         if result.returncode != 0:
+#             return "Script execution failed: {}".format(result.stderr.decode("utf-8")), 500
+#         # load the vectorstore
+#         DB = Chroma(
+#             persist_directory=PERSIST_DIRECTORY,
+#             embedding_function=EMBEDDINGS,
+#             client_settings=CHROMA_SETTINGS,
+#         )
+#         RETRIEVER = DB.as_retriever()
+#         prompt, memory = get_prompt_template(promptTemplate_type="llama", history=False)
+
+#         QA = RetrievalQA.from_chain_type(
+#             llm=LLM,
+#             chain_type="stuff",
+#             retriever=RETRIEVER,
+#             return_source_documents=SHOW_SOURCES,
+#             chain_type_kwargs={
+#                 "prompt": prompt,
+#             },
+#         )
+#         return "Script executed successfully: {}".format(result.stdout.decode("utf-8")), 200
+#     except Exception as e:
+#         return f"Error occurred: {str(e)}", 500
 
 
 @app.route("/api/prompt_route", methods=["GET", "POST"])
